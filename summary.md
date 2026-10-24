@@ -45,6 +45,16 @@ Every page load (except login) goes through `src/auth.php`, which starts a sessi
 - Stored as a string: `none`, `all`, a host **FQDN**, or legacy values (`%`, empty → treated as `all` in the UI; old **groupname** values are mapped to FQDN when possible).
 - The form dropdown is built from rows in `hosts`, plus a “current” option if the DB value is not in the list.
 
+### Host membership sync (users → `hosts.members`)
+
+When a user is saved or deleted, `index.php` updates machine-group member lists on `hosts` (same idea as csv-user-manager’s `sync_user_host_members`):
+
+- **`access_host` = `all`** — username is added to every host’s `members` (after `ansible,sudo,wheel`).
+- **Specific FQDN** — username is added only on the matching host row.
+- **`none`** — username is not added; changing to `none` removes the user from host member lists.
+- **Edit** — changing access or renaming the user removes the old username from affected hosts and adds the new one.
+- **Delete** — username is removed from all hosts’ `members`.
+
 ### Errors
 
 - PDO `23000` → friendly duplicate message (unique on `name`, `uid` for users; `fqdn`, `groupname`, `gid` for hosts).

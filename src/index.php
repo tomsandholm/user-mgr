@@ -67,10 +67,131 @@ function normalize_members(string $members): string
     return implode(',', $ordered);
 }
 
+function normalize_access_host(string $access): string
+{
+    $access = strtolower(trim($access));
+    if ($access === '%') {
+        return 'all';
+    }
+    return $access;
+}
+
+function host_machine_group_key(array $host): string
+{
+    return str_replace('.', '-', strtolower(trim($host['groupname'] ?? '')));
+}
+
+function access_host_matches_host(string $normalized_access, array $host): bool
+{
+    if ($normalized_access === 'none' || $normalized_access === '') {
+        return false;
+    }
+    if ($normalized_access === 'all') {
+        return true;
+    }
+    $fqdn = strtolower(trim($host['fqdn'] ?? ''));
+    $groupname = strtolower(trim($host['groupname'] ?? ''));
+    $as_group = str_replace('.', '-', $normalized_access);
+    return $normalized_access === $fqdn
+        || $normalized_access === $groupname
+        || $as_group === $groupname
+        || $as_group === host_machine_group_key($host);
+}
+
+function parse_members_list(string $members): array
+{
+    return array_values(array_filter(
+        array_map('trim', explode(',', $members)),
+        fn(string $m) => $m !== ''
+    ));
+}
+
+function sync_user_host_members(
+    PDO $pdo,
+    string $username,
+    string $old_access_host = '',
+    string $new_access_host = '',
+    string $old_username = ''
+): void {
+    $username = trim($username);
+    $old_username = trim($old_username) !== '' ? trim($old_username) : $username;
+    if ($username === '') {
+        return;
+    }
+
+    $old_access = normalize_access_host($old_access_host);
+    $new_access = normalize_access_host($new_access_host);
+    $assignment_changed = $old_username !== $username || $old_access !== $new_access;
+    if (!$assignment_changed) {
+        return;
+    }
+
+    $hosts = $pdo->query('SELECT id, fqdn, groupname, members FROM hosts')->fetchAll();
+    $update = $pdo->prepare('UPDATE hosts SET members = ? WHERE id = ?');
+
+    foreach ($hosts as $host) {
+        $members = parse_members_list((string)($host['members'] ?? ''));
+        $machine_key = host_machine_group_key($host);
+
+        $remove_user = $new_access === 'none'
+            || $old_access === 'all'
+            || ($old_access !== '' && $old_access !== 'none' && (
+                $old_access === $machine_key
+                || access_host_matches_host($old_access, $host)
+            ));
+
+        $add_user = $new_access === 'all'
+            || ($new_access !== '' && $new_access !== 'none' && access_host_matches_host($new_access, $host));
+
+        if ($remove_user) {
+            $members = array_values(array_filter(
+                $members,
+                fn(string $m) => $m !== $old_username
+            ));
+        }
+        if ($add_user && !in_array($username, $members, true)) {
+            $members[] = $username;
+        }
+
+        $normalized = normalize_members(implode(',', $members));
+        if ($normalized !== (string)$host['members']) {
+            $update->execute([$normalized, $host['id']]);
+        }
+    }
+}
+
+function remove_user_from_host_members(PDO $pdo, string $username): void
+{
+    $username = trim($username);
+    if ($username === '') {
+        return;
+    }
+
+    $hosts = $pdo->query('SELECT id, members FROM hosts')->fetchAll();
+    $update = $pdo->prepare('UPDATE hosts SET members = ? WHERE id = ?');
+
+    foreach ($hosts as $host) {
+        $members = array_values(array_filter(
+            parse_members_list((string)($host['members'] ?? '')),
+            fn(string $m) => $m !== $username
+        ));
+        $normalized = normalize_members(implode(',', $members));
+        if ($normalized !== (string)$host['members']) {
+            $update->execute([$normalized, $host['id']]);
+        }
+    }
+}
+
 // --- USER: DELETE ---
 if (isset($_GET['delete'])) {
-    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+    $stmt = $pdo->prepare('SELECT name FROM users WHERE id = ?');
     $stmt->execute([$_GET['delete']]);
+    $deleted = $stmt->fetch();
+    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+    $stmt->execute([$_GET['delete']]);
+    if ($deleted) {
+        remove_user_from_host_members($pdo, $deleted['name']);
+    }
     header("Location: index.php?msg=Record+Deleted");
     exit;
 }
@@ -130,16 +251,30 @@ if (isset($_POST['save'])) {
     $update_mode = ($_POST['update_mode'] ?? '0') === '1';
     $id = $_POST['id'] ?? '';
 
+    $prev_name = '';
+    $prev_access_host = '';
+    if ($update_mode && $id !== '') {
+        $prev_stmt = $pdo->prepare('SELECT name, access_host FROM users WHERE id = ?');
+        $prev_stmt->execute([$id]);
+        $prev_row = $prev_stmt->fetch();
+        if ($prev_row) {
+            $prev_name = (string)$prev_row['name'];
+            $prev_access_host = (string)$prev_row['access_host'];
+        }
+    }
+
     if (!empty($name) && $uid !== '' && $gid !== '' && $email !== '') {
         try {
             if ($update_mode) {
                 $stmt = $pdo->prepare("UPDATE users SET name = ?, uid = ?, gid = ?, email = ?, shell = ?, home = ?, public_key = ?, access_host = ? WHERE id = ?");
                 $stmt->execute([$name, $uid, $gid, $email, $shell, $home, $public_key, $access_host, $id]);
+                sync_user_host_members($pdo, $name, $prev_access_host, $access_host, $prev_name);
                 header("Location: index.php?msg=Record+Updated");
                 exit;
             } else {
                 $stmt = $pdo->prepare("INSERT INTO users (name, uid, gid, email, shell, home, public_key, access_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$name, $uid, $gid, $email, $shell, $home, $public_key, $access_host]);
+                sync_user_host_members($pdo, $name, '', $access_host);
                 header("Location: index.php?msg=Record+Added");
                 exit;
             }

@@ -1,0 +1,20 @@
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(32) NOT NULL UNIQUE,
+    uid INT NOT NULL UNIQUE,
+    gid INT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    shell VARCHAR(100) DEFAULT '/bin/bash',
+    home VARCHAR(255) NOT NULL,
+    public_key TEXT,
+    access_host VARCHAR(255) DEFAULT 'localhost'
+);
+
+CREATE TABLE IF NOT EXISTS hosts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fqdn VARCHAR(255) NOT NULL UNIQUE,
+    groupname VARCHAR(255) NOT NULL UNIQUE,
+    gid INT NOT NULL UNIQUE,
+    members TEXT NOT NULL
+);
+

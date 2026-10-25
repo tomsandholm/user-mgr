@@ -1,0 +1,61 @@
+---
+- name: Remove legacy user-mgr block from /etc/group
+  ansible.builtin.blockinfile:
+    path: "{{ group_file }}"
+    marker: "# {mark} {{ legacy_group_block_marker }}"
+    state: absent
+  failed_when: false
+
+- name: Ensure groups from export exist
+  ansible.builtin.group:
+    name: "{{ line_parts[0] }}"
+    gid: "{{ line_parts[2] | int }}"
+    state: present
+  loop: "{{ user_mgr_group_lines }}"
+  loop_control:
+    label: "{{ line_parts[0] }}"
+  vars:
+    line_parts: "{{ item.split(':') }}"
+  when:
+    - line_parts | length >= 4
+    - line_parts[1] == 'x'
+
+- name: Read current group members from the system
+  ansible.builtin.command:
+    cmd: getent group {{ line_parts[0] }}
+  loop: "{{ user_mgr_group_lines }}"
+  loop_control:
+    label: "{{ line_parts[0] }}"
+  vars:
+    line_parts: "{{ item.split(':') }}"
+  when:
+    - line_parts | length >= 4
+    - line_parts[1] == 'x'
+    - (line_parts[3] | default('')) | length > 0
+  register: user_mgr_getent_groups
+  changed_when: false
+
+- name: Set supplementary group members from export
+  ansible.builtin.command:
+    argv:
+      - gpasswd
+      - -M
+      - "{{ desired_members }}"
+      - "{{ group_name }}"
+  vars:
+    line_parts: "{{ item.item.split(':') }}"
+    group_name: "{{ line_parts[0] }}"
+    desired_members: "{{ line_parts[3] }}"
+    current_members: "{{ (item.stdout.split(':')[3] | default('')) | trim }}"
+  loop: "{{ user_mgr_getent_groups.results }}"
+  loop_control:
+    label: "{{ group_name }}"
+  when:
+    - not item.skipped | default(false)
+    - current_members != desired_members
+  changed_when: true
+
+- name: Synchronize gshadow entries with group
+  ansible.builtin.command:
+    cmd: grpconv
+  changed_when: true

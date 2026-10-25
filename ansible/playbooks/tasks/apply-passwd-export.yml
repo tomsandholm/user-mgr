@@ -1,0 +1,31 @@
+---
+- name: Remove legacy user-mgr block from /etc/passwd
+  ansible.builtin.blockinfile:
+    path: "{{ passwd_file }}"
+    marker: "# {mark} {{ legacy_passwd_block_marker }}"
+    state: absent
+  failed_when: false
+
+- name: Apply passwd export lines with user module
+  ansible.builtin.user:
+    name: "{{ line_parts[0] }}"
+    uid: "{{ line_parts[2] | int }}"
+    group: "{{ line_parts[3] | int }}"
+    comment: "{{ line_parts[4] }}"
+    home: "{{ line_parts[5] }}"
+    shell: "{{ line_parts[6] }}"
+    state: present
+    create_home: true
+  loop: "{{ user_mgr_passwd_lines }}"
+  loop_control:
+    label: "{{ line_parts[0] }}"
+  vars:
+    line_parts: "{{ item.split(':') }}"
+  when:
+    - line_parts | length >= 7
+    - line_parts[1] == 'x'
+
+- name: Synchronize shadow entries with passwd
+  ansible.builtin.command:
+    cmd: pwconv
+  changed_when: true

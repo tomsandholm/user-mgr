@@ -3,13 +3,22 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/sample_file_write.php';
 
-function format_group_line(array $host): string
+function format_host_group_line(array $host): string
 {
     $groupname = sanitize_group_field((string)$host['groupname']);
     $gid = (int)$host['gid'];
     $members = format_group_members((string)($host['members'] ?? ''));
 
     return sprintf('%s:x:%d:%s', $groupname, $gid, $members);
+}
+
+/** Primary group for a user account (matches create_users.php). */
+function format_user_group_line(array $user): string
+{
+    $name = sanitize_group_field((string)$user['name']);
+    $gid = (int)$user['gid'];
+
+    return sprintf('%s:x:%d:', $name, $gid);
 }
 
 function format_group_members(string $members): string
@@ -34,11 +43,15 @@ function sanitize_group_field(string $value): string
 
 function export_group_to_file(PDO $pdo, string $outputFile): int
 {
+    $users = $pdo->query('SELECT name, gid FROM users ORDER BY gid ASC')->fetchAll();
     $hosts = $pdo->query('SELECT groupname, gid, members FROM hosts ORDER BY gid ASC')->fetchAll();
 
     $lines = [];
     foreach ($hosts as $host) {
-        $lines[] = format_group_line($host);
+        $lines[] = format_host_group_line($host);
+    }
+    foreach ($users as $user) {
+        $lines[] = format_user_group_line($user);
     }
 
     $content = implode("\n", $lines);

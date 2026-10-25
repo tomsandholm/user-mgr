@@ -5,6 +5,7 @@ services:
       - "8080:80"
     volumes:
       - ./src:/var/www/html
+      - ./exports:/exports
     environment:
       DB_HOST: db
       DB_NAME: users

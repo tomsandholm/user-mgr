@@ -369,6 +369,8 @@ if (isset($_GET['msg'])) {
             <a href="#hosts" class="btn btn-link btn-sm">Hosts</a>
             <a href="dump.php" class="btn btn-outline-primary btn-sm">Dump users &amp; hosts</a>
             <a href="import.php" class="btn btn-outline-success btn-sm">Import dump</a>
+            <a href="generate-passwd.php" class="btn btn-outline-info btn-sm">Generate passwd</a>
+            <a href="generate-group.php" class="btn btn-outline-info btn-sm">Generate group</a>
             <span class="text-muted small">Signed in as <strong><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></strong></span>
             <a href="logout.php" class="btn btn-outline-secondary btn-sm">Log out</a>
         </div>

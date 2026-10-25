@@ -1,0 +1,4 @@
+sv-quantum-lx25-infinera-com:x:6000:ansible,sudo,wheel
+sv-quantum-lx26-infinera-com:x:6001:ansible,sudo,wheel
+sv-quantum-lx27-infinera-com:x:6002:ansible,sudo,wheel
+sv-quantum-lx28-infinera-com:x:6003:ansible,sudo,wheel

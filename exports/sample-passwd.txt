@@ -1,0 +1,4 @@
+stu01:x:5000:5000:tom.sandholm@gmail.com:/share/home/stu01:/bin/bash
+stu02:x:5001:5001:tom.sandholm@gmail.com:/share/home/stu02:/bin/bash
+stu03:x:5002:5002:tom.sandholm@gmail.com:/share/home/stu03:/bin/bash
+stu04:x:5003:5003:tom.sandholm@gmail.com:/share/home/stu04:/bin/bash

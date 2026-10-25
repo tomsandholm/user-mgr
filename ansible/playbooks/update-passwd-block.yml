@@ -1,0 +1,53 @@
+---
+# Apply exports/sample-passwd.txt to /etc/passwd on virt hosts, then run pwconv.
+#
+#   cd ~/prog/user-mgr
+#   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-passwd-block.yml
+#
+# Override block file path:
+#   ansible-playbook ... -e passwd_block_file=/path/to/sample-passwd.txt
+
+- name: Install user-mgr managed passwd block on virt hosts
+  hosts: virt
+  become: true
+  gather_facts: false
+  serial: 1
+
+  vars:
+    passwd_file: /etc/passwd
+    passwd_block_file: "{{ playbook_dir }}/../../exports/sample-passwd.txt"
+    passwd_block_marker: user-mgr managed users
+
+  pre_tasks:
+    - name: Read sample-passwd content from the controller
+      ansible.builtin.set_fact:
+        user_mgr_passwd_block: "{{ lookup('ansible.builtin.file', passwd_block_file) }}"
+      delegate_to: localhost
+      delegate_facts: true
+      become: false
+      run_once: true
+
+    - name: Ensure sample-passwd content is not empty
+      ansible.builtin.assert:
+        that:
+          - hostvars['localhost'].user_mgr_passwd_block | trim | length > 0
+        fail_msg: >-
+          {{ passwd_block_file }} is empty or missing. Run generate-passwd.php
+          (or the Generate passwd button) before this playbook.
+      become: false
+      run_once: true
+
+  tasks:
+    - name: Replace the managed user block in /etc/passwd
+      ansible.builtin.blockinfile:
+        path: "{{ passwd_file }}"
+        marker: "# {mark} {{ passwd_block_marker }}"
+        block: "{{ hostvars['localhost'].user_mgr_passwd_block | trim }}"
+        insertafter: EOF
+        create: false
+        backup: true
+
+    - name: Synchronize shadow entries with passwd
+      ansible.builtin.command:
+        cmd: pwconv
+      changed_when: true

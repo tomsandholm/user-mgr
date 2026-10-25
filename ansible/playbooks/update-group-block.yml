@@ -1,0 +1,53 @@
+---
+# Apply exports/sample-group.txt to /etc/group on virt hosts, then run grpconv.
+#
+#   cd ~/prog/user-mgr
+#   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-group-block.yml
+#
+# Override block file path:
+#   ansible-playbook ... -e group_block_file=/path/to/sample-group.txt
+
+- name: Install user-mgr managed group block on virt hosts
+  hosts: virt
+  become: true
+  gather_facts: false
+  serial: 1
+
+  vars:
+    group_file: /etc/group
+    group_block_file: "{{ playbook_dir }}/../../exports/sample-group.txt"
+    group_block_marker: user-mgr managed groups
+
+  pre_tasks:
+    - name: Read sample-group content from the controller
+      ansible.builtin.set_fact:
+        user_mgr_group_block: "{{ lookup('ansible.builtin.file', group_block_file) }}"
+      delegate_to: localhost
+      delegate_facts: true
+      become: false
+      run_once: true
+
+    - name: Ensure sample-group content is not empty
+      ansible.builtin.assert:
+        that:
+          - hostvars['localhost'].user_mgr_group_block | trim | length > 0
+        fail_msg: >-
+          {{ group_block_file }} is empty or missing. Run generate-group.php
+          (or the Generate group button) before this playbook.
+      become: false
+      run_once: true
+
+  tasks:
+    - name: Replace the managed group block in /etc/group
+      ansible.builtin.blockinfile:
+        path: "{{ group_file }}"
+        marker: "# {mark} {{ group_block_marker }}"
+        block: "{{ hostvars['localhost'].user_mgr_group_block | trim }}"
+        insertafter: EOF
+        create: false
+        backup: true
+
+    - name: Synchronize gshadow entries with group
+      ansible.builtin.command:
+        cmd: grpconv
+      changed_when: true

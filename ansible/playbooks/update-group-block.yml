@@ -1,11 +1,10 @@
 ---
-# Apply exports/sample-group.txt using groupadd/groupmod and gpasswd, not /etc/group blocks.
+# Apply groups from the user-mgr MySQL database (groupadd/groupmod and gpasswd).
 #
 #   cd ~/prog/user-mgr
 #   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-group-block.yml
 #
-# Override export path:
-#   ansible-playbook ... -e group_export_file=/path/to/sample-group.txt
+# Database connection uses DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS (see vars/user_mgr_db.yml).
 
 - name: Install user-mgr group export on virt hosts
   hosts: virt
@@ -13,44 +12,17 @@
   gather_facts: false
   serial: 1
 
+  vars_files:
+    - vars/user_mgr_db.yml
+
   vars:
     group_file: /etc/group
-    group_export_file: "{{ group_block_file | default(playbook_dir + '/../../exports/sample-group.txt') }}"
     legacy_group_block_marker: user-mgr managed groups
 
   pre_tasks:
-    - name: Read sample-group content from the controller
-      ansible.builtin.set_fact:
-        user_mgr_group_block: "{{ lookup('ansible.builtin.file', group_export_file) }}"
-      delegate_to: localhost
-      delegate_facts: true
-      become: false
-      run_once: true
-
-    - name: Build group line list
-      ansible.builtin.set_fact:
-        user_mgr_group_lines: >-
-          {{
-            hostvars['localhost'].user_mgr_group_block
-            | trim
-            | split('\n')
-            | map('trim')
-            | reject('equalto', '')
-            | list
-          }}
-      become: false
-      run_once: true
-
-    - name: Ensure sample-group content is not empty
-      ansible.builtin.assert:
-        that:
-          - hostvars['localhost'].user_mgr_group_lines | length > 0
-        fail_msg: >-
-          {{ group_export_file }} is empty or missing. Run generate-group.php
-          (or the Generate group button) before this playbook.
-      become: false
-      run_once: true
+    - name: Load group lines from database
+      ansible.builtin.import_tasks: tasks/load-group-from-db.yml
 
   tasks:
-    - name: Apply group export
+    - name: Apply group lines
       ansible.builtin.import_tasks: tasks/apply-group-export.yml

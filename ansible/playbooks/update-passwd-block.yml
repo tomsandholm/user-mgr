@@ -1,13 +1,12 @@
 ---
-# Apply exports/sample-passwd.txt using useradd/usermod (ansible.builtin.user), not /etc/passwd blocks.
+# Apply user accounts from the user-mgr MySQL database (ansible.builtin.user).
 #
 #   cd ~/prog/user-mgr
 #   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-passwd-block.yml
 #
 # Run update-group-block.yml first if primary groups are not on the host yet.
 #
-# Override export path:
-#   ansible-playbook ... -e passwd_export_file=/path/to/sample-passwd.txt
+# Database connection uses DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS (see vars/user_mgr_db.yml).
 
 - name: Install user-mgr passwd export on virt hosts
   hosts: virt
@@ -15,44 +14,17 @@
   gather_facts: false
   serial: 1
 
+  vars_files:
+    - vars/user_mgr_db.yml
+
   vars:
     passwd_file: /etc/passwd
-    passwd_export_file: "{{ passwd_block_file | default(playbook_dir + '/../../exports/sample-passwd.txt') }}"
     legacy_passwd_block_marker: user-mgr managed users
 
   pre_tasks:
-    - name: Read sample-passwd content from the controller
-      ansible.builtin.set_fact:
-        user_mgr_passwd_block: "{{ lookup('ansible.builtin.file', passwd_export_file) }}"
-      delegate_to: localhost
-      delegate_facts: true
-      become: false
-      run_once: true
-
-    - name: Build passwd line list
-      ansible.builtin.set_fact:
-        user_mgr_passwd_lines: >-
-          {{
-            hostvars['localhost'].user_mgr_passwd_block
-            | trim
-            | split('\n')
-            | map('trim')
-            | reject('equalto', '')
-            | list
-          }}
-      become: false
-      run_once: true
-
-    - name: Ensure sample-passwd content is not empty
-      ansible.builtin.assert:
-        that:
-          - hostvars['localhost'].user_mgr_passwd_lines | length > 0
-        fail_msg: >-
-          {{ passwd_export_file }} is empty or missing. Run generate-passwd.php
-          (or the Generate passwd button) before this playbook.
-      become: false
-      run_once: true
+    - name: Load passwd lines from database
+      ansible.builtin.import_tasks: tasks/load-passwd-from-db.yml
 
   tasks:
-    - name: Apply passwd export
+    - name: Apply passwd lines
       ansible.builtin.import_tasks: tasks/apply-passwd-export.yml

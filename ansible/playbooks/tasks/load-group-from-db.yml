@@ -1,0 +1,99 @@
+---
+- name: Query host groups from user-mgr database
+  ansible.builtin.command:
+    argv:
+      - mysql
+      - "-h{{ user_mgr_db_host }}"
+      - "-P{{ user_mgr_db_port | string }}"
+      - "-u{{ user_mgr_db_user }}"
+      - "{{ user_mgr_db_name }}"
+      - -N
+      - -B
+      - -e
+      - >-
+        SELECT groupname, gid, members
+        FROM hosts
+        ORDER BY gid ASC
+  environment:
+    MYSQL_PWD: "{{ user_mgr_db_password }}"
+  register: user_mgr_host_groups_raw
+  changed_when: false
+  check_mode: false
+  no_log: true
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Query user primary groups from user-mgr database
+  ansible.builtin.command:
+    argv:
+      - mysql
+      - "-h{{ user_mgr_db_host }}"
+      - "-P{{ user_mgr_db_port | string }}"
+      - "-u{{ user_mgr_db_user }}"
+      - "{{ user_mgr_db_name }}"
+      - -N
+      - -B
+      - -e
+      - >-
+        SELECT name, gid
+        FROM users
+        ORDER BY gid ASC
+  environment:
+    MYSQL_PWD: "{{ user_mgr_db_password }}"
+  register: user_mgr_user_groups_raw
+  changed_when: false
+  check_mode: false
+  no_log: true
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Build group line list from database rows
+  ansible.builtin.set_fact:
+    user_mgr_group_lines: >-
+      {%- set lines = [] -%}
+      {%- for line in user_mgr_host_groups_raw.stdout_lines | default([]) -%}
+      {%- set cols = line.split('\t') -%}
+      {%- if cols | length >= 2 -%}
+      {%- set gname = cols[0] | default('') | string | regex_replace('[:\\r\\n]', '') | trim -%}
+      {%- set member_parts = (cols[2] | default('') | string | trim | regex_replace('[\\s,]+', ' ')).split(' ') -%}
+      {%- set clean_members = [] -%}
+      {%- for part in member_parts -%}
+      {%- set name = part | regex_replace('[:\\r\\n]', '') | trim -%}
+      {%- if name != '' -%}{%- set _ = clean_members.append(name) -%}{%- endif -%}
+      {%- endfor -%}
+      {%- set _ = lines.append(gname ~ ':x:' ~ (cols[1] | int) ~ ':' ~ (clean_members | join(','))) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- for line in user_mgr_user_groups_raw.stdout_lines | default([]) -%}
+      {%- set cols = line.split('\t') -%}
+      {%- if cols | length >= 2 -%}
+      {%- set uname = cols[0] | default('') | string | regex_replace('[:\\r\\n]', '') | trim -%}
+      {%- set _ = lines.append(uname ~ ':x:' ~ (cols[1] | int) ~ ':') -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ lines }}
+  delegate_to: localhost
+  delegate_facts: true
+  become: false
+  run_once: true
+  check_mode: false
+
+- name: Ensure user-mgr database returned at least one group line
+  ansible.builtin.assert:
+    that:
+      - hostvars['localhost'].user_mgr_group_lines | length > 0
+    fail_msg: >-
+      No host or user groups were returned from the database. Add hosts/users in
+      user-mgr and verify DB_* connection settings.
+  delegate_to: localhost
+  become: false
+  run_once: true
+  check_mode: false
+
+- name: Share group lines with all play hosts
+  ansible.builtin.set_fact:
+    user_mgr_group_lines: "{{ hostvars['localhost'].user_mgr_group_lines }}"
+  when: hostvars['localhost'].user_mgr_group_lines is defined
+  check_mode: false

@@ -1,0 +1,43 @@
+---
+# Create user-mgr accounts on the Ansible controller only (updates /etc/passwd and /etc/group locally).
+# Home directories use /usr/share/home/<username>, not the home paths stored in MySQL.
+#
+#   cd ~/prog/user-mgr
+#   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-controller-users.yml
+#
+# Database connection uses DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS (see vars/user_mgr_db.yml).
+
+- name: Install user-mgr accounts on ansible-controller
+  hosts: ansible_controller
+  become: true
+  gather_facts: false
+
+  vars_files:
+    - vars/user_mgr_db.yml
+
+  vars:
+    passwd_file: /etc/passwd
+    group_file: /etc/group
+    user_mgr_home_root: /usr/share/home
+    legacy_passwd_block_marker: user-mgr managed users
+    legacy_group_block_marker: user-mgr managed groups
+
+  pre_tasks:
+    - name: Load group lines from database
+      ansible.builtin.import_tasks: tasks/load-group-from-db.yml
+
+    - name: Load passwd lines from database
+      ansible.builtin.import_tasks: tasks/load-passwd-from-db.yml
+
+  tasks:
+    - name: Ensure controller home root exists
+      ansible.builtin.file:
+        path: "{{ user_mgr_home_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Apply group lines to /etc/group
+      ansible.builtin.import_tasks: tasks/apply-group-export.yml
+
+    - name: Apply passwd lines to /etc/passwd
+      ansible.builtin.import_tasks: tasks/apply-passwd-export.yml

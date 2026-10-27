@@ -1,0 +1,66 @@
+---
+- name: Query users from user-mgr database
+  ansible.builtin.command:
+    argv:
+      - mysql
+      - "-h{{ user_mgr_db_host }}"
+      - "-P{{ user_mgr_db_port | string }}"
+      - "-u{{ user_mgr_db_user }}"
+      - "{{ user_mgr_db_name }}"
+      - -N
+      - -B
+      - -e
+      - >-
+        SELECT name, uid, gid, email, shell, home
+        FROM users
+        ORDER BY uid ASC
+  environment:
+    MYSQL_PWD: "{{ user_mgr_db_password }}"
+  register: user_mgr_users_raw
+  changed_when: false
+  check_mode: false
+  no_log: true
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Build passwd line list from database rows
+  ansible.builtin.set_fact:
+    user_mgr_passwd_lines: >-
+      {%- set lines = [] -%}
+      {%- for line in user_mgr_users_raw.stdout_lines | default([]) -%}
+      {%- set cols = line.split('\t') -%}
+      {%- if cols | length >= 6 -%}
+      {%- set shell = (cols[4] | string | trim) -%}
+      {%- if shell == '' -%}{%- set shell = '/bin/bash' -%}{%- endif -%}
+      {%- set gecos = cols[3] | default('') | string | regex_replace('[:\\r\\n]', ' ') -%}
+      {%- set _ = lines.append(
+        cols[0] ~ ':x:' ~ (cols[1] | int) ~ ':' ~ (cols[2] | int)
+        ~ ':' ~ gecos ~ ':' ~ cols[5] ~ ':' ~ shell
+      ) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ lines }}
+  delegate_to: localhost
+  delegate_facts: true
+  become: false
+  run_once: true
+  check_mode: false
+
+- name: Ensure user-mgr database returned at least one user
+  ansible.builtin.assert:
+    that:
+      - hostvars['localhost'].user_mgr_passwd_lines | length > 0
+    fail_msg: >-
+      The users table is empty or the database query failed. Add users in user-mgr
+      and verify DB_* connection settings.
+  delegate_to: localhost
+  become: false
+  run_once: true
+  check_mode: false
+
+- name: Share passwd lines with all play hosts
+  ansible.builtin.set_fact:
+    user_mgr_passwd_lines: "{{ hostvars['localhost'].user_mgr_passwd_lines }}"
+  when: hostvars['localhost'].user_mgr_passwd_lines is defined
+  check_mode: false

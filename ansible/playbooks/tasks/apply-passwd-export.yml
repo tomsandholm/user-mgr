@@ -12,7 +12,12 @@
     uid: "{{ line_parts[2] | int }}"
     group: "{{ line_parts[3] | int }}"
     comment: "{{ line_parts[4] }}"
-    home: "{{ line_parts[5] }}"
+    home: >-
+      {{
+        (user_mgr_home_root | default('') | trim) + '/' + line_parts[0]
+        if (user_mgr_home_root | default('') | trim) != ''
+        else line_parts[5]
+      }}
     shell: "{{ line_parts[6] }}"
     state: present
     create_home: true

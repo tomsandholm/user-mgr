@@ -264,16 +264,23 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
     <?php echo $message; ?>
 
     <?php if ($deploy_output !== ''): ?>
-        <div class="alert <?php echo $deploy_exit_code === 0 ? 'alert-success' : 'alert-danger'; ?>">
+        <div class="alert <?php echo $deploy_exit_code === 0 ? 'alert-success' : 'alert-danger'; ?> mb-2">
             <strong>Deploy <?php echo $deploy_exit_code === 0 ? 'finished successfully' : 'failed'; ?></strong>
             (exit code <?php echo (int)$deploy_exit_code; ?>)
         </div>
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-secondary text-white">
+        <div class="card shadow-sm mb-4" id="deploy-log-panel">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center gap-2">
                 <h5 class="mb-0 font-monospace">ansible-playbook output</h5>
+                <button type="button" class="btn btn-sm btn-light font-monospace" id="deploy-log-toggle"
+                        data-bs-toggle="collapse" data-bs-target="#deploy-log-body"
+                        aria-expanded="true" aria-controls="deploy-log-body">
+                    Collapse log
+                </button>
             </div>
-            <div class="card-body p-0">
-                <pre class="mb-0 p-3 small font-monospace" style="max-height: 48rem; overflow: auto; white-space: pre-wrap;"><?php echo htmlspecialchars($deploy_output); ?></pre>
+            <div class="collapse show" id="deploy-log-body">
+                <div class="card-body p-0 border-top border-secondary">
+                    <pre class="mb-0 p-3 small font-monospace" style="max-height: 48rem; overflow: auto; white-space: pre-wrap;"><?php echo htmlspecialchars($deploy_output); ?></pre>
+                </div>
             </div>
         </div>
     <?php endif; ?>
@@ -611,6 +618,22 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
             groupInput.value = fqdnInput.value.trim().toLowerCase().replace(/\./g, '-');
         }
     }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    const body = document.getElementById('deploy-log-body');
+    const toggle = document.getElementById('deploy-log-toggle');
+    if (!body || !toggle) return;
+    body.addEventListener('shown.bs.collapse', function () {
+        toggle.textContent = 'Collapse log';
+        toggle.setAttribute('aria-expanded', 'true');
+    });
+    body.addEventListener('hidden.bs.collapse', function () {
+        toggle.textContent = 'Show log';
+        toggle.setAttribute('aria-expanded', 'false');
+    });
 })();
 </script>
 

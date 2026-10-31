@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const DEFAULT_HOST_MEMBERS = ['ansible', 'sudo', 'wheel'];
+const DEFAULT_HOST_MEMBERS = ['ansible'];
 
 function normalize_members(string $members): string
 {

@@ -27,7 +27,7 @@ $host_id = '';
 $fqdn = '';
 $groupname = '';
 $host_gid = '';
-$members = 'ansible,sudo,wheel';
+$members = 'ansible';
 $host_update_mode = false;
 
 function next_uid_gid(PDO $pdo): array
@@ -210,7 +210,7 @@ if (!$host_update_mode) {
     if ($host_gid === '') {
         $host_gid = next_host_gid($pdo);
     }
-    if ($members === '' || $members === 'ansible,sudo,wheel') {
+    if ($members === '' || $members === 'ansible') {
         $members = implode(',', DEFAULT_HOST_MEMBERS);
     }
 }
@@ -491,7 +491,7 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
                                 <label class="form-label font-monospace fw-bold">Members</label>
                                 <input type="text" name="members" class="form-control font-monospace"
                                        value="<?php echo htmlspecialchars($members); ?>" required>
-                                <div class="form-text">Always begins with <code>ansible,sudo,wheel</code>; add more comma-separated</div>
+                                <div class="form-text">Always includes <code>ansible</code>; add more comma-separated <strong>user</strong> names (not group names like sudo/wheel).</div>
                             </div>
 
                             <div class="d-grid gap-2">

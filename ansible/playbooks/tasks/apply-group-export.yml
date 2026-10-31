@@ -36,24 +36,43 @@
   changed_when: false
 
 - name: Set supplementary group members from export
-  ansible.builtin.command:
-    argv:
-      - gpasswd
-      - -M
-      - "{{ desired_members }}"
-      - "{{ group_name }}"
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      group={{ group_name | quote }}
+      desired={{ desired_members_raw | quote }}
+      valid_list=()
+      IFS=',' read -ra parts <<< "$desired"
+      for n in "${parts[@]}"; do
+        n="${n// /}"
+        [[ -z "$n" ]] && continue
+        if getent passwd "$n" >/dev/null 2>&1; then
+          valid_list+=("$n")
+        fi
+      done
+      valid=$(IFS=,; echo "${valid_list[*]}")
+      current=$(getent group "$group" | cut -d: -f4-)
+      current="${current#:}"
+      if [[ "$current" == "$valid" ]]; then
+        echo unchanged
+        exit 0
+      fi
+      gpasswd -M "$valid" "$group"
+      echo changed
+    executable: /bin/bash
   vars:
     line_parts: "{{ item.item.split(':') }}"
     group_name: "{{ line_parts[0] }}"
-    desired_members: "{{ line_parts[3] }}"
+    desired_members_raw: "{{ line_parts[3] | default('') }}"
     current_members: "{{ (item.stdout.split(':')[3] | default('')) | trim }}"
   loop: "{{ user_mgr_getent_groups.results }}"
   loop_control:
     label: "{{ group_name }}"
   when:
     - not item.skipped | default(false)
-    - current_members != desired_members
-  changed_when: true
+  register: user_mgr_gpasswd_results
+  changed_when: (stdout | default('')) | trim == 'changed'
+  failed_when: rc != 0
 
 - name: Synchronize gshadow entries with group
   ansible.builtin.command:

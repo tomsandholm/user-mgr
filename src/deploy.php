@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/auth.php';
+require_once __DIR__ . '/host_membership.php';
 require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -22,6 +23,16 @@ if (empty($_POST['deploy'])) {
 
 @set_time_limit(900);
 @ini_set('max_execution_time', '900');
+
+try {
+    $pdo = db_connect($config);
+    reconcile_all_user_host_members($pdo);
+} catch (\PDOException $e) {
+    $_SESSION['deploy_output'] = 'Database reconcile before deploy failed: ' . $e->getMessage();
+    $_SESSION['deploy_exit_code'] = 1;
+    header('Location: index.php?deploy_result=1');
+    exit;
+}
 
 $cmd = 'sudo -n /ansible/run-sync-from-db.sh 2>&1';
 $output = [];

@@ -1,11 +1,17 @@
 services:
+
   web:
-    build: .
+    build: 
+      context: ./web
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     volumes:
       - ./src:/var/www/html
       - ./exports:/exports
+      - ./ansible:/ansible
+      - ./ansible-keys:/root/.ssh:ro
+      - /etc/hosts:/etc/hosts
     environment:
       DB_HOST: db
       DB_NAME: users
@@ -16,6 +22,20 @@ services:
     depends_on:
       - db
 
+#  ansible:
+#    build:
+#      context: ./ansible
+#      dockerfile: Dockerfile
+#    volumes:
+#      - ./ansible:/ansible
+#      - ./ansible-keys:/root/.ssh:ro
+#      - ./exports:/home/ansible/exports:rw
+#      - /etc/hosts:/etc/hosts
+#    environment:
+#      - ANSIBLE_CONFIG=/ansible/ansible.cfg
+#    tty: true
+#    stdin_open: true
+
   db:
     image: mariadb:10.11
     restart: always
@@ -25,7 +45,7 @@ services:
       MYSQL_USER: sysadm
       MYSQL_PASSWORD: theresa1
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
 
@@ -38,6 +58,7 @@ services:
       - PMA_HOST=db
     depends_on:
       - db
+
 
 volumes:
   db_data:

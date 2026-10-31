@@ -1,0 +1,10 @@
+---
+- name: Print the current date and time from each system
+  hosts: all
+  gather_facts: true  # Required to populate the ansible_date_time variable
+  
+  tasks:
+    - name: Display the date and time from the remote host
+      ansible.builtin.debug:
+        msg: "The current date on {{ inventory_hostname }} is {{ ansible_date_time.date }} and the time is {{ ansible_date_time.time }}"
+

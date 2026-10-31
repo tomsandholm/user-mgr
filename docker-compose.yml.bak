@@ -1,0 +1,47 @@
+services:
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./exports:/exports
+    environment:
+      DB_HOST: db
+      DB_NAME: users
+      DB_USER: root
+      DB_PASS: theresa1
+      ADMIN_USER: admin
+      ADMIN_PASS: theresa1
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: theresa1
+      MYSQL_DATABASE: users
+      MYSQL_USER: sysadm
+      MYSQL_PASSWORD: theresa1
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=db
+    depends_on:
+      - db
+
+
+volumes:
+  db_data:
+

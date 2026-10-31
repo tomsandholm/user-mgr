@@ -1,7 +1,7 @@
 ---
 # Matches src/config.php defaults; override with DB_* environment variables.
 user_mgr_db_host: "{{ lookup('env', 'DB_HOST') | default('127.0.0.1', true) }}"
-user_mgr_db_port: "{{ lookup('env', 'DB_PORT') | default('3307', true) }}"
+user_mgr_db_port: "{{ lookup('env', 'DB_PORT') | default('3306', true) }}"
 user_mgr_db_name: "{{ lookup('env', 'DB_NAME') | default('users', true) }}"
 user_mgr_db_user: "{{ lookup('env', 'DB_USER') | default('root', true) }}"
 user_mgr_db_password: "{{ lookup('env', 'DB_PASS') | default('theresa1', true) }}"

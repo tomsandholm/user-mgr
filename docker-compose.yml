@@ -10,7 +10,7 @@ services:
       - ./src:/var/www/html
       - ./exports:/exports
       - ./ansible:/ansible
-      - ./ansible-keys:/root/.ssh:ro
+      - ./ansible-keys:/root/.ssh:rw
       - /etc/hosts:/etc/hosts
     environment:
       DB_HOST: db

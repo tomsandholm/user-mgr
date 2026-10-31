@@ -23,5 +23,16 @@ db-shell:
 	docker exec -it user-mgr-db-1 /bin/bash
 
 
-ansible-shell:
-	docker exec -it user-mgr-ansible-1 /bin/bash
+.PHONY: ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller
+
+ansible-sync-groups:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-group-block.yml
+
+ansible-sync-users:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-passwd-block.yml
+
+ansible-sync-all:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/sync-accounts-from-db.yml
+
+ansible-sync-controller:
+	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-controller-users.yml

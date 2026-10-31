@@ -7,7 +7,7 @@ CREATE TABLE users (
     shell VARCHAR(100) DEFAULT '/bin/bash',
     home VARCHAR(255) NOT NULL,
     public_key TEXT,
-    access_host VARCHAR(255) DEFAULT 'localhost'
+    access_host VARCHAR(255) DEFAULT 'all'
 );
 
 CREATE TABLE IF NOT EXISTS hosts (
@@ -17,4 +17,3 @@ CREATE TABLE IF NOT EXISTS hosts (
     gid INT NOT NULL UNIQUE,
     members TEXT NOT NULL
 );
-

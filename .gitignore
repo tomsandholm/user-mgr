@@ -1,0 +1,2 @@
+# SSH keys and local Ansible credentials (mounted into containers)
+ansible-keys/

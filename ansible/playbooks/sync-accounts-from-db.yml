@@ -1,0 +1,18 @@
+---
+# Create user-mgr groups and user accounts on target hosts directly from MySQL.
+#
+# Equivalent to running update-group-block.yml then update-passwd-block.yml.
+#
+#   cd ~/prog/user-mgr
+#   export ANSIBLE_CONFIG=ansible/ansible.cfg
+#   export DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=users DB_USER=root DB_PASS=theresa1
+#   ansible-playbook ansible/playbooks/sync-accounts-from-db.yml
+#
+# Optional: limit hosts
+#   ansible-playbook ansible/playbooks/sync-accounts-from-db.yml --limit tom1.tsand.org
+
+- name: Sync group accounts from user-mgr database
+  ansible.builtin.import_playbook: update-group-block.yml
+
+- name: Sync user accounts from user-mgr database
+  ansible.builtin.import_playbook: update-passwd-block.yml

@@ -28,7 +28,13 @@ $output = [];
 $exitCode = 0;
 exec($cmd, $output, $exitCode);
 
-$_SESSION['deploy_output'] = implode("\n", $output);
+$header = [
+    '=== Deploy: ansible/playbooks/sync-accounts-from-db.yml ===',
+    'Options: -vvv --diff, stdout_callback=yaml, show_task_path=on',
+    '',
+];
+
+$_SESSION['deploy_output'] = implode("\n", array_merge($header, $output));
 $_SESSION['deploy_exit_code'] = $exitCode;
 $_SESSION['deploy_at'] = gmdate('c');
 

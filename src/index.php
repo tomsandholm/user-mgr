@@ -273,7 +273,7 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
                 <h5 class="mb-0 font-monospace">ansible-playbook output</h5>
             </div>
             <div class="card-body p-0">
-                <pre class="mb-0 p-3 small font-monospace" style="max-height: 24rem; overflow: auto;"><?php echo htmlspecialchars($deploy_output); ?></pre>
+                <pre class="mb-0 p-3 small font-monospace" style="max-height: 48rem; overflow: auto; white-space: pre-wrap;"><?php echo htmlspecialchars($deploy_output); ?></pre>
             </div>
         </div>
     <?php endif; ?>

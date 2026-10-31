@@ -27,6 +27,7 @@ if (empty($_POST['deploy'])) {
 try {
     $pdo = db_connect($config);
     reconcile_all_user_host_members($pdo);
+    sanitize_legacy_host_member_names($pdo);
 } catch (\PDOException $e) {
     $_SESSION['deploy_output'] = 'Database reconcile before deploy failed: ' . $e->getMessage();
     $_SESSION['deploy_exit_code'] = 1;

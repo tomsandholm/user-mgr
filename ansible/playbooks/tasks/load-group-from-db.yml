@@ -60,8 +60,8 @@
       {%- set member_parts = (cols[2] | default('') | string | trim | regex_replace('[\\s,]+', ' ')).split(' ') -%}
       {%- set clean_members = [] -%}
       {%- for part in member_parts -%}
-      {%- set name = part | regex_replace('[:\\r\\n]', '') | trim -%}
-      {%- if name != '' -%}{%- set _ = clean_members.append(name) -%}{%- endif -%}
+      {%- set name = part | regex_replace('[:\\r\\n]', '') | trim | lower -%}
+      {%- if name != '' and name not in ['sudo', 'wheel'] -%}{%- set _ = clean_members.append(name) -%}{%- endif -%}
       {%- endfor -%}
       {%- set _ = lines.append(gname ~ ':x:' ~ (cols[1] | int) ~ ':' ~ (clean_members | join(','))) -%}
       {%- endif -%}

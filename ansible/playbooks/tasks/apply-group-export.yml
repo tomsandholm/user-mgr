@@ -71,8 +71,7 @@
   when:
     - not item.skipped | default(false)
   register: user_mgr_gpasswd_results
-  changed_when: (stdout | default('')) | trim == 'changed'
-  failed_when: rc != 0
+  changed_when: stdout | default('') | trim == 'changed'
 
 - name: Synchronize gshadow entries with group
   ansible.builtin.command:

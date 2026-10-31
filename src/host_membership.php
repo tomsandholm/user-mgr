@@ -3,12 +3,25 @@ declare(strict_types=1);
 
 const DEFAULT_HOST_MEMBERS = ['ansible'];
 
+/** Names that are system groups on Linux, not valid gpasswd member users. */
+const RESERVED_NON_USER_MEMBERS = ['sudo', 'wheel'];
+
+function is_valid_member_username(string $name): bool
+{
+    $name = strtolower(trim($name));
+
+    return $name !== '' && !in_array($name, RESERVED_NON_USER_MEMBERS, true);
+}
+
 function normalize_members(string $members): string
 {
     $parts = preg_split('/[\s,]+/', trim($members), -1, PREG_SPLIT_NO_EMPTY) ?: [];
     $parts = array_map('strtolower', $parts);
     $ordered = DEFAULT_HOST_MEMBERS;
     foreach ($parts as $p) {
+        if (!is_valid_member_username($p)) {
+            continue;
+        }
         if (!in_array($p, $ordered, true)) {
             $ordered[] = $p;
         }
@@ -147,5 +160,19 @@ function reconcile_all_user_host_members(PDO $pdo): void
     $users = $pdo->query('SELECT name, access_host FROM users')->fetchAll();
     foreach ($users as $user) {
         apply_user_host_membership($pdo, (string)$user['name'], (string)$user['access_host']);
+    }
+}
+
+/** Rewrite hosts.members to drop legacy non-user names (sudo, wheel) and re-normalize. */
+function sanitize_legacy_host_member_names(PDO $pdo): void
+{
+    $hosts = $pdo->query('SELECT id, members FROM hosts')->fetchAll();
+    $update = $pdo->prepare('UPDATE hosts SET members = ? WHERE id = ?');
+
+    foreach ($hosts as $host) {
+        $normalized = normalize_members((string)($host['members'] ?? ''));
+        if ($normalized !== (string)$host['members']) {
+            $update->execute([$normalized, $host['id']]);
+        }
     }
 }

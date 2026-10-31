@@ -242,20 +242,6 @@ if (isset($_SESSION['deploy_output'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Account Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .deploy-busy-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 2000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: rgba(33, 37, 41, 0.55);
-        }
-        .deploy-busy-overlay.is-active {
-            display: flex;
-        }
-    </style>
 </head>
 <body class="bg-light">
 
@@ -269,7 +255,8 @@ if (isset($_SESSION['deploy_output'])) {
             <a href="import.php" class="btn btn-outline-success btn-sm">Import dump</a>
             <a href="generate-passwd.php" class="btn btn-outline-info btn-sm">Generate passwd</a>
             <a href="generate-group.php" class="btn btn-outline-info btn-sm">Generate group</a>
-            <form action="deploy.php" method="POST" class="d-inline" id="deploy-form">
+            <form action="deploy.php" method="POST" class="d-inline" id="deploy-form"
+                  onsubmit="return confirm('Run Ansible sync on all inventory hosts? This updates /etc/group and user accounts from the database.');">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                 <button type="submit" name="deploy" value="1" class="btn btn-warning btn-sm" id="deploy-submit-btn">Deploy</button>
             </form>
@@ -584,18 +571,6 @@ if (isset($_SESSION['deploy_output'])) {
     </section>
 </div>
 
-<div id="deploy-busy-overlay" class="deploy-busy-overlay" aria-live="polite" aria-busy="false" hidden>
-    <div class="card shadow-lg border-0" style="min-width: 18rem; max-width: 90vw;">
-        <div class="card-body text-center px-4 py-4">
-            <div class="spinner-border text-warning mb-3" style="width: 3rem; height: 3rem;" role="status">
-                <span class="visually-hidden">Loading…</span>
-            </div>
-            <p class="mb-1 fw-semibold">Running Ansible sync…</p>
-            <p class="small text-muted mb-0">Updating groups and users from the database. This may take several minutes.</p>
-        </div>
-    </div>
-</div>
-
 <script>
 (function () {
     const HOME_PREFIX = '/share/home/';
@@ -650,57 +625,6 @@ if (isset($_SESSION['deploy_output'])) {
             groupInput.value = fqdnInput.value.trim().toLowerCase().replace(/\./g, '-');
         }
     }
-})();
-</script>
-<script>
-(function () {
-    const form = document.getElementById('deploy-form');
-    const overlay = document.getElementById('deploy-busy-overlay');
-    const submitBtn = document.getElementById('deploy-submit-btn');
-    if (!form || !overlay || !submitBtn) {
-        return;
-    }
-
-    const confirmMsg = 'Run Ansible sync on all inventory hosts? This updates /etc/group and user accounts from the database.';
-
-    function setBusy(active) {
-        overlay.classList.toggle('is-active', active);
-        overlay.hidden = !active;
-        overlay.setAttribute('aria-busy', active ? 'true' : 'false');
-        submitBtn.disabled = active;
-    }
-
-    form.addEventListener('submit', function (event) {
-        event.preventDefault();
-        if (!window.confirm(confirmMsg)) {
-            return;
-        }
-
-        setBusy(true);
-
-        fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form),
-            credentials: 'same-origin',
-            redirect: 'manual',
-        })
-            .then(function (response) {
-                const location = response.headers.get('Location');
-                if (location) {
-                    window.location.assign(new URL(location, window.location.href).href);
-                    return;
-                }
-                if (response.ok) {
-                    window.location.assign('index.php#deploy-log-panel');
-                    return;
-                }
-                throw new Error('Deploy failed (HTTP ' + response.status + ').');
-            })
-            .catch(function (err) {
-                setBusy(false);
-                window.alert(err.message || 'Deploy request failed.');
-            });
-    });
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

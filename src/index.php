@@ -224,10 +224,14 @@ if (isset($_GET['msg'])) {
 
 $deploy_output = '';
 $deploy_exit_code = null;
-if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
+if (isset($_GET['dismiss_deploy'])) {
+    unset($_SESSION['deploy_output'], $_SESSION['deploy_exit_code'], $_SESSION['deploy_at']);
+    header('Location: index.php');
+    exit;
+}
+if (isset($_SESSION['deploy_output'])) {
     $deploy_output = (string)$_SESSION['deploy_output'];
     $deploy_exit_code = (int)($_SESSION['deploy_exit_code'] ?? 1);
-    unset($_SESSION['deploy_output'], $_SESSION['deploy_exit_code'], $_SESSION['deploy_at']);
 }
 ?>
 
@@ -282,13 +286,16 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
             (exit code <?php echo (int)$deploy_exit_code; ?>)
         </div>
         <div class="card shadow-sm mb-4" id="deploy-log-panel">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center gap-2">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
                 <h5 class="mb-0 font-monospace">ansible-playbook output</h5>
-                <button type="button" class="btn btn-sm btn-light font-monospace" id="deploy-log-toggle"
-                        data-bs-toggle="collapse" data-bs-target="#deploy-log-body"
-                        aria-expanded="true" aria-controls="deploy-log-body">
-                    Collapse log
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-light font-monospace" id="deploy-log-toggle"
+                            data-bs-toggle="collapse" data-bs-target="#deploy-log-body"
+                            aria-expanded="true" aria-controls="deploy-log-body">
+                        Collapse log
+                    </button>
+                    <a href="index.php?dismiss_deploy=1" class="btn btn-sm btn-outline-light font-monospace">Dismiss log</a>
+                </div>
             </div>
             <div class="collapse show" id="deploy-log-body">
                 <div class="card-body p-0 border-top border-secondary">
@@ -675,13 +682,19 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
             method: 'POST',
             body: new FormData(form),
             credentials: 'same-origin',
-            redirect: 'follow',
+            redirect: 'manual',
         })
             .then(function (response) {
-                if (!response.ok && !response.redirected) {
-                    throw new Error('Deploy failed (HTTP ' + response.status + ').');
+                const location = response.headers.get('Location');
+                if (location) {
+                    window.location.assign(new URL(location, window.location.href).href);
+                    return;
                 }
-                window.location.assign(response.url);
+                if (response.ok) {
+                    window.location.assign('index.php#deploy-log-panel');
+                    return;
+                }
+                throw new Error('Deploy failed (HTTP ' + response.status + ').');
             })
             .catch(function (err) {
                 setBusy(false);
@@ -704,6 +717,11 @@ if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
         toggle.textContent = 'Show log';
         toggle.setAttribute('aria-expanded', 'false');
     });
+
+    const panel = document.getElementById('deploy-log-panel');
+    if (panel && (window.location.hash === '#deploy-log-panel' || window.location.search.indexOf('deploy_result=') !== -1)) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 })();
 </script>
 

@@ -31,7 +31,7 @@ try {
 } catch (\PDOException $e) {
     $_SESSION['deploy_output'] = 'Database reconcile before deploy failed: ' . $e->getMessage();
     $_SESSION['deploy_exit_code'] = 1;
-    header('Location: index.php?deploy_result=1');
+    header('Location: index.php?deploy_result=1#deploy-log-panel');
     exit;
 }
 
@@ -50,5 +50,5 @@ $_SESSION['deploy_output'] = implode("\n", array_merge($header, $output));
 $_SESSION['deploy_exit_code'] = $exitCode;
 $_SESSION['deploy_at'] = gmdate('c');
 
-header('Location: index.php?deploy_result=1');
+header('Location: index.php?deploy_result=1#deploy-log-panel');
 exit;

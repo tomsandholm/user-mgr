@@ -30,12 +30,14 @@ DEV25_DIR  ?= ~/prog/user-mgr
 
 # Laptop ↔ dev25 (sv-quantum-lx25): push git from dev25 only; pull changes to laptop with sync-from-dev25.
 sync-to-dev25:
-	rsync -avz --exclude '.cursor/' ./ $(DEV25_HOST):$(DEV25_DIR)/
+	rsync -avz --exclude '.cursor/' --exclude 'ansible-keys/' --exclude '.git/' ./ $(DEV25_HOST):$(DEV25_DIR)/
 
 sync-from-dev25:
 	git fetch origin
 	git pull --ff-only origin main
-	rsync -avz $(DEV25_HOST):$(DEV25_DIR)/ ./ --exclude '.git/' --exclude '.cursor/'
+
+sync-keys-from-dev25:
+	rsync -avz $(DEV25_HOST):$(DEV25_DIR)/ansible-keys/ ./ansible-keys/
 
 ansible-sync-groups:
 	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-group-block.yml

@@ -1,2 +1,6 @@
 # SSH keys and local Ansible credentials (mounted into containers)
 ansible-keys/
+
+# Editor / backup / local shell noise
+*.bak
+ansible/.bash_history

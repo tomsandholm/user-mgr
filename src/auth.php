@@ -73,6 +73,20 @@ function attempt_login(string $username, string $password, array $config): bool
     return true;
 }
 
+function csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf(string $token): bool
+{
+    return $token !== '' && isset($_SESSION['csrf_token'])
+        && hash_equals($_SESSION['csrf_token'], $token);
+}
+
 function logout(): void
 {
     $_SESSION = [];

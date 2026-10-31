@@ -1,9 +1,9 @@
 services:
 
   web:
-    build: 
-      context: ./web
-      dockerfile: Dockerfile
+    build:
+      context: .
+      dockerfile: web/Dockerfile
     ports:
       - "8080:80"
     volumes:

@@ -221,6 +221,14 @@ $hosts = $pdo->query("SELECT * FROM hosts ORDER BY id DESC")->fetchAll();
 if (isset($_GET['msg'])) {
     $message = "<div class='alert alert-success'>" . htmlspecialchars($_GET['msg']) . "</div>";
 }
+
+$deploy_output = '';
+$deploy_exit_code = null;
+if (isset($_GET['deploy_result']) && isset($_SESSION['deploy_output'])) {
+    $deploy_output = (string)$_SESSION['deploy_output'];
+    $deploy_exit_code = (int)($_SESSION['deploy_exit_code'] ?? 1);
+    unset($_SESSION['deploy_output'], $_SESSION['deploy_exit_code'], $_SESSION['deploy_at']);
+}
 ?>
 
 <!DOCTYPE html>
@@ -243,12 +251,32 @@ if (isset($_GET['msg'])) {
             <a href="import.php" class="btn btn-outline-success btn-sm">Import dump</a>
             <a href="generate-passwd.php" class="btn btn-outline-info btn-sm">Generate passwd</a>
             <a href="generate-group.php" class="btn btn-outline-info btn-sm">Generate group</a>
+            <form action="deploy.php" method="POST" class="d-inline"
+                  onsubmit="return confirm('Run Ansible sync on all inventory hosts? This updates /etc/group and user accounts from the database.');">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                <button type="submit" name="deploy" value="1" class="btn btn-warning btn-sm">Deploy</button>
+            </form>
             <span class="text-muted small">Signed in as <strong><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></strong></span>
             <a href="logout.php" class="btn btn-outline-secondary btn-sm">Log out</a>
         </div>
     </div>
 
     <?php echo $message; ?>
+
+    <?php if ($deploy_output !== ''): ?>
+        <div class="alert <?php echo $deploy_exit_code === 0 ? 'alert-success' : 'alert-danger'; ?>">
+            <strong>Deploy <?php echo $deploy_exit_code === 0 ? 'finished successfully' : 'failed'; ?></strong>
+            (exit code <?php echo (int)$deploy_exit_code; ?>)
+        </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0 font-monospace">ansible-playbook output</h5>
+            </div>
+            <div class="card-body p-0">
+                <pre class="mb-0 p-3 small font-monospace" style="max-height: 24rem; overflow: auto;"><?php echo htmlspecialchars($deploy_output); ?></pre>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- USERS PANE -->
     <section id="users" class="mb-5">

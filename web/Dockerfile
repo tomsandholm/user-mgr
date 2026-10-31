@@ -5,9 +5,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   default-mysql-client \
   ansible \
   openssh-client \
+  sudo \
   git \
   unzip \
   && rm -rf /var/lib/apt/lists/*
+
+COPY ansible/deploy-sudoers /etc/sudoers.d/user-mgr-deploy
+RUN chmod 440 /etc/sudoers.d/user-mgr-deploy
 
 RUN a2enmod rewrite
 

@@ -1,0 +1,3 @@
+# Allow the Apache user to run the DB sync playbook as root (SSH keys live under /root/.ssh).
+Defaults:www-data !requiretty
+www-data ALL=(root) NOPASSWD: /ansible/run-sync-from-db.sh

@@ -76,6 +76,7 @@ When you save a user, [`src/host_membership.php`](src/host_membership.php) updat
    - **Hosts**: `?delete_host=`; `?edit_host=`; `POST save_host` → insert/update host; new host triggers `reconcile_all_user_host_members()`.
 3. **Auto-fill** for new records: next UID/GID from `MAX(uid/gid)+1`; next host GID from `hosts`; default `members` = `ansible,sudo,wheel`; JS sets `home` → `/share/home/<name>` and `groupname` from FQDN.
 4. **Render** two sections: user matrix and host matrix, plus links to dump/import/generate export files.
+5. **Deploy** (yellow button) POSTs to [`src/deploy.php`](src/deploy.php), which runs `sudo /ansible/run-sync-from-db.sh` inside the **web** container — the same as [`sync-accounts-from-db.yml`](ansible/playbooks/sync-accounts-from-db.yml) (groups, then users on inventory **`virt`** hosts). Output is shown on the index page after the run.
 
 Export helpers (same data shape Ansible uses):
 

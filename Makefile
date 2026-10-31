@@ -23,7 +23,19 @@ db-shell:
 	docker exec -it user-mgr-db-1 /bin/bash
 
 
-.PHONY: ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller
+DEV25_HOST ?= dev25
+DEV25_DIR  ?= ~/prog/user-mgr
+
+.PHONY: ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller sync-to-dev25 sync-from-dev25
+
+# Laptop ↔ dev25 (sv-quantum-lx25): push git from dev25 only; pull changes to laptop with sync-from-dev25.
+sync-to-dev25:
+	rsync -avz --exclude '.cursor/' ./ $(DEV25_HOST):$(DEV25_DIR)/
+
+sync-from-dev25:
+	git fetch origin
+	git pull --ff-only origin main
+	rsync -avz $(DEV25_HOST):$(DEV25_DIR)/ ./ --exclude '.git/' --exclude '.cursor/'
 
 ansible-sync-groups:
 	ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbooks/update-group-block.yml

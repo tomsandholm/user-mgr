@@ -1,0 +1,27 @@
+---
+description: Run user-mgr dev, tests, and git push on dev25; sync laptop from remote only
+alwaysApply: true
+---
+
+# Primary host: dev25 (sv-quantum-lx25)
+
+**GitHub push from the laptop is broken.** Treat **`dev25`** (`sv-quantum-lx25.infinera.com`, see `~/.ssh/config`) as the canonical machine for this repo.
+
+## Do on dev25
+
+- Edit/run/test: Docker, MySQL, Ansible playbooks, `make` targets, integration checks.
+- **Git commit and `git push`** — only from `dev25:~/prog/user-mgr`.
+- Use `ssh dev25`, `rsync … dev25:~/prog/user-mgr/`, or remote commands; do not rely on pushing from the laptop.
+
+## Laptop (this workspace)
+
+- **Read-only mirror for Cursor/editing** unless the user asks otherwise.
+- Sync **from** dev25 or **from** GitHub after dev25 has pushed: `make sync-from-dev25` or `git pull --ff-only origin main`.
+- **Never** `git push` from the laptop for this project.
+
+## Typical flow
+
+1. Rsync local changes to dev25 when needed: `rsync -avz --exclude '.cursor/' ./ dev25:~/prog/user-mgr/`
+2. Work and test on dev25.
+3. Commit and push on dev25.
+4. Sync laptop: `make sync-from-dev25` (or pull from origin).

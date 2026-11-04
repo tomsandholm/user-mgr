@@ -16,12 +16,12 @@ alwaysApply: true
 ## Laptop (this workspace)
 
 - **Read-only mirror for Cursor/editing** unless the user asks otherwise.
-- Sync **from** dev25 or **from** GitHub after dev25 has pushed: `make sync-from-dev25` or `git pull --ff-only origin main`.
+- Sync code **from GitHub** after dev25 has pushed: `make sync-from-dev25` (same as `git pull --ff-only origin main`). Ansible keys only: `make sync-keys-from-dev25`.
 - **Never** `git push` from the laptop for this project.
 
 ## Typical flow
 
-1. Rsync local changes to dev25 when needed: `rsync -avz --exclude '.cursor/' ./ dev25:~/prog/user-mgr/`
+1. Rsync local changes to dev25 when needed: `make sync-to-dev25` (or rsync with the same excludes as that target).
 2. Work and test on dev25.
 3. Commit and push on dev25.
 4. Sync laptop: `make sync-from-dev25` (or pull from origin).

@@ -242,13 +242,65 @@ if (isset($_SESSION['deploy_output'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Account Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html {
+            overflow-x: clip;
+        }
+        body.bg-light {
+            overflow-x: clip;
+        }
+        .deploy-tip-host {
+            position: relative;
+            display: inline-block;
+        }
+        .deploy-tip-bubble {
+            position: absolute;
+            z-index: 1080;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            left: auto;
+            transform: none;
+            box-sizing: border-box;
+            width: min(18rem, calc(100vw - 2rem));
+            max-width: min(18rem, calc(100vw - 2rem));
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+            line-height: 1.35;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: break-word;
+            color: #fff;
+            background: #212529;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.12s ease, visibility 0.12s ease;
+        }
+        .deploy-tip-bubble::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            right: 1.25rem;
+            left: auto;
+            margin-left: 0;
+            border: 0.35rem solid transparent;
+            border-bottom-color: #212529;
+        }
+        .deploy-tip-host:hover .deploy-tip-bubble,
+        .deploy-tip-host:focus-within .deploy-tip-bubble {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
 <div class="container-fluid px-4 mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Server Account Management Panel</h2>
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3 flex-wrap" style="overflow: visible;">
             <a href="#users" class="btn btn-link btn-sm">Users</a>
             <a href="#hosts" class="btn btn-link btn-sm">Hosts</a>
             <a href="dump.php" class="btn btn-outline-primary btn-sm">Dump users &amp; hosts</a>
@@ -258,7 +310,10 @@ if (isset($_SESSION['deploy_output'])) {
             <form action="deploy.php" method="POST" class="d-inline" id="deploy-form"
                   onsubmit="return confirm('Run Ansible sync on all inventory hosts? This updates /etc/group and user accounts from the database.');">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                <button type="submit" name="deploy" value="1" class="btn btn-warning btn-sm" id="deploy-submit-btn">Deploy</button>
+                <span class="deploy-tip-host">
+                    <button type="submit" name="deploy" value="1" class="btn btn-warning btn-sm" id="deploy-submit-btn">Deploy</button>
+                    <span class="deploy-tip-bubble" role="tooltip">Runs Ansible playbooks (sync-accounts-from-db.yml): applies /etc/group and user accounts on all inventory hosts from the database (groups, then users).</span>
+                </span>
             </form>
             <span class="text-muted small">Signed in as <strong><?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?></strong></span>
             <a href="logout.php" class="btn btn-outline-secondary btn-sm">Log out</a>

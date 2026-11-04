@@ -30,11 +30,14 @@ web-shell:
 db-shell:
 	docker exec -it user-mgr-db-1 /bin/bash
 
+ansible-shell:
+	docker exec -it user-mgr-web-1 bash -c 'cd /ansible && exec bash -i'
+
 
 DEV25_HOST ?= dev25
 DEV25_DIR  ?= ~/prog/user-mgr
 
-.PHONY: ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller sync-to-dev25 sync-from-dev25 sync-keys-from-dev25
+.PHONY: ansible-shell ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller sync-to-dev25 sync-from-dev25 sync-keys-from-dev25
 
 # Laptop ↔ dev25: rsync edits to dev25; laptop updates from GitHub only (after dev25 push). Keys: sync-keys-from-dev25.
 sync-to-dev25:

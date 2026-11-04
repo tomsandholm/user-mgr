@@ -12,7 +12,7 @@ function format_host_group_line(array $host): string
     return sprintf('%s:x:%d:%s', $groupname, $gid, $members);
 }
 
-/** Primary group for a user account (matches create_users.php). */
+/** Primary group line for a user account (/etc/group style, member list empty). */
 function format_user_group_line(array $user): string
 {
     $name = sanitize_group_field((string)$user['name']);

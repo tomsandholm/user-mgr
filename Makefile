@@ -10,11 +10,19 @@ up:
 status:
 	docker ps | grep user-mgr
 
+# MariaDB in docker-compose (published on DB_HOST:DB_PORT)
+DB_HOST ?= 127.0.0.1
+DB_PORT ?= 3306
+DB_NAME ?= users
+DB_USER ?= root
+DB_PASS ?= theresa1
+MYSQL := mysql -h $(DB_HOST) -P $(DB_PORT) -u $(DB_USER) -p$(DB_PASS) $(DB_NAME)
+
 show-users:
-	@mysql -BN -h 127.0.0.1 -e "SELECT name,uid,gid,email,shell,home from users.users;" | tr '\t' ':'
+	@$(MYSQL) -BN -e "SELECT name,uid,gid,email,shell,home FROM users;" | tr '\t' ':'
 
 show-groups:
-	@mysql -BN -h 127.0.0.1 -e "SELECT groupname,gid,members from users.hosts;" | tr '\t' ':'
+	@$(MYSQL) -BN -e "SELECT groupname,gid,members FROM hosts;" | tr '\t' ':'
 
 web-shell:
 	docker exec -it user-mgr-web-1 /bin/bash
@@ -26,14 +34,13 @@ db-shell:
 DEV25_HOST ?= dev25
 DEV25_DIR  ?= ~/prog/user-mgr
 
-.PHONY: ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller sync-to-dev25 sync-from-dev25
+.PHONY: ansible-sync-groups ansible-sync-users ansible-sync-all ansible-sync-controller sync-to-dev25 sync-from-dev25 sync-keys-from-dev25
 
-# Laptop ↔ dev25 (sv-quantum-lx25): push git from dev25 only; pull changes to laptop with sync-from-dev25.
+# Laptop ↔ dev25: rsync edits to dev25; laptop updates from GitHub only (after dev25 push). Keys: sync-keys-from-dev25.
 sync-to-dev25:
 	rsync -avz --exclude '.cursor/' --exclude 'ansible-keys/' --exclude '.git/' ./ $(DEV25_HOST):$(DEV25_DIR)/
 
 sync-from-dev25:
-	git fetch origin
 	git pull --ff-only origin main
 
 sync-keys-from-dev25:

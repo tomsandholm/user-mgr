@@ -59,6 +59,6 @@ try {
     die(htmlspecialchars($e->getMessage()));
 }
 
-$msg = sprintf('Wrote %d passwd line(s) to exports/sample-passwd.txt', $count);
+$msg = sprintf('Wrote %d passwd line(s) to %s', $count, $outputFile);
 header('Location: index.php?msg=' . rawurlencode($msg));
 exit;

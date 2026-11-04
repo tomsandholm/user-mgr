@@ -59,6 +59,6 @@ try {
     die(htmlspecialchars($e->getMessage()));
 }
 
-$msg = sprintf('Wrote %d group line(s) to exports/sample-group.txt', $count);
+$msg = sprintf('Wrote %d group line(s) to %s', $count, $outputFile);
 header('Location: index.php?msg=' . rawurlencode($msg));
 exit;
